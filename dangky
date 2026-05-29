@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>VNY</title>
+    <style>
+        
+        body {
+            font-family: "Times New Roman", Times, serif;
+            margin: 20px;
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        
+        tr.muted-row {
+            opacity: 0.30;
+            background-color: #cccccc;
+        }
+        tr.muted-row button {
+            display: none; 
+        }
+
+        tr.selected-row {
+            background-color: #ffffcc;
+        }
+
+        .search-container {
+            margin: 15px 0;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 5px;
+            font-size: 14px;
+            font-family: "Times New Roman", Times, serif;
+        }
+
+        .export-container {
+            margin-top: 20px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>VNY - TRICK LỎD ĐĂNG KÝ TÍN CHỈ DUT</h1>
+    <hr>
+
+    <fieldset class="search-container">
+        <legend><b>Tìm học phần</b></legend>
+        <input type="text" id="search-input" class="search-box" placeholder="Nhap ten mon hoc hoac ma hoc phan de loc (Co hoac khong co dau cham deu duoc)...">
+    </fieldset>
+
+    <br>
+    <table border="1" cellpadding="6" cellspacing="0" width="100%">
+        <thead>
+            <tr bgcolor="#e6e6e6">
+                <th width="15%">Mã học phần</th>
+                <th width="25%">Tên học phần</th>
+                <th width="30%">Thời khóa biểu</th>
+                <th width="15%">Giảng viên</th>
+                <th width="7%">Tín chỉ</th>
+                <th width="8%">Đăng ký</th>
+            </tr>
+        </thead>
+        <tbody id="data-rows">
+            </tbody>
+    </table>
+
+    <div class="export-container">
+        <hr>
+        <button id="export-btn" style="padding: 8px 15px; font-weight: bold; font-family: 'Times New Roman';" onclick="notifyUpdating()">
+            xuất code script
+        </button>
+    </div>
+
+<script>
+    
+    const DATABASE_HOC_PHAN = [
+    { classCode: "10110932521yy92", name: "Kỹ thuật an toàn & Môi trường", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 46-49]", teacher: "Tào Quang Bảng", credits: "2" },
+    { classCode: "10125802521yy99", name: "Cơ sở công nghệ chế tạo máy", schedule: "T2: 2-4,XP | T4: 2-4,XP | T6: 2-4,XP [Tuần: 46-51]", teacher: "Lưu Đức Bình", credits: "3.5" },
+    { classCode: "10129402521yy95", name: "Trang bị công nghệ", schedule: "T4: 7-10,XP [Tuần: 46-52]", teacher: "Lưu Đức Bình", credits: "2" },
+    { classCode: "10122302521yy96", name: "Toán CN 2: PP phần tử hữu hạn", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Phạm Thế Nhân", credits: "2" },
+    { classCode: "10129902521yy96", name: "Thiết kế nhà máy cơ khí", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Phạm Thế Nhân", credits: "2" },
+    { classCode: "10130802521yy98", name: "Tư duy khởi nghiệp", schedule: "T4: 7-10,XP [Tuần: 46-49]", teacher: "Nguyễn Quang Như Quỳnh", credits: "1" },
+    { classCode: "10126802521yy92", name: "Dung sai và kỹ thuật đo", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 48-52]", teacher: "Trần Minh Sang", credits: "2.5" },
+    { classCode: "10112832521yy94", name: "Anh văn CN Cơ khí", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Hoàng Văn Thạnh", credits: "2" },
+    { classCode: "10129302521yy94", name: "Công nghệ gia công tiên tiến", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Hoàng Văn Thạnh", credits: "2" },
+    { classCode: "10133402521yy93", name: "Truyền động và điều khiển thủy khí", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 49-52]", teacher: "Trần Xuân Tùy", credits: "2" },
+    { classCode: "10126502521yy91", name: "Linh kiện điện tử và cảm biến công nghiệp", schedule: "T5: 7-10,XP | T6: 7-10,XP [Tuần: 47-52]", teacher: "Đặng Phước Vinh", credits: "3" },
+    { classCode: "10132102521yy91", name: "Kỹ thuật phân tích dao động", schedule: "T5: 2-5,XP [Tuần: 46-52]", teacher: "Đặng Phước Vinh", credits: "2" },
+    { classCode: "10125902521yy90A", name: "TH Cơ sở công nghệ chế tạo máy", schedule: "T7: 2-5,M206 [Tuần: 50-52]", teacher: "Phạm Nguyễn Quốc Huy", credits: "0.5" },
+    { classCode: "10125902521yy90B", name: "TH Cơ sở công nghệ chế tạo máy", schedule: "T7: 7-10,M206 [Tuần: 50-52]", teacher: "Phạm Nguyễn Quốc Huy", credits: "0.5" },
+    { classCode: "10124402521yy98", name: "Cơ sở điều khiển hệ cơ khí", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Võ Như Thành", credits: "2" },
+    { classCode: "10112632521yy93", name: "Bảo trì công nghiệp", schedule: "T2: 2-5,XP [Tuần: 46-52]", teacher: "Đinh Đức Hạnh", credits: "2" },
+    { classCode: "10132702521yy92", name: "Công nghệ xử lý hình ảnh & âm thanh", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 47-52]", teacher: "Đoàn Lê Anh", credits: "3" },
+    { classCode: "10204132521yy96", name: "Kiểm thử phần mềm", schedule: "T5: 2-5,XP [Tuần: 46-52]", teacher: "Võ Đức Hoàng", credits: "2" },
+    { classCode: "10232902521yy99", name: "Cơ sở dữ liệu", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Võ Đức Hoàng", credits: "2" },
+    { classCode: "10202922521yy95", name: "Mạng máy tính", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Thế Xuân Ly", credits: "2" },
+    { classCode: "10332702521yy91", name: "Sức bền vật liệu", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 47-52]", teacher: "Nguyễn Văn Thiên Ân", credits: "3" },
+    { classCode: "10327902521yy95", name: "Vẽ kỹ thuật cơ khí", schedule: "T2: 7-10,XP | T3: 7-10,XP [Tuần: 46-51]", teacher: "Nguyễn Độ", credits: "1.5" },
+    { classCode: "10327922521yy96", name: "Cơ học kỹ thuật", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Kim Loan", credits: "2" },
+    { classCode: "10331802521yy99", name: "Kỹ thuật thủy khí", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Phan Thành Long", credits: "2" },
+    { classCode: "10325832521yy93", name: "Kỹ thuật ô tô hybrid _ Ô tô điện", schedule: "T5: 2-5,XP [Tuần: 46-52]", teacher: "Phạm Quốc Thái", credits: "2" },
+    { classCode: "10121202521yy95", name: "Cơ học kỹ thuật", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Trịnh Xuân Long", credits: "3" },
+    { classCode: "10332902521yy92", name: "Nguyên lý máy", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Trịnh Xuân Long", credits: "2" },
+    { classCode: "10321702521yy91", name: "Hình họa - vẽ kỹ thuật", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 47-52]", teacher: "Tôn Nữ Huyền Trang", credits: "3" },
+    { classCode: "10321802521yy91", name: "Hình họa 1", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Tôn Nữ Huyền Trang", credits: "2" },
+    { classCode: "10323102521yy92", name: "Vẽ kỹ thuật", schedule: "T2: 2-5,E2.203 [Tuần: 46-52]", teacher: "Nguyễn Công Hành", credits: "2" },
+    { classCode: "10321702521yy90", name: "Hình họa - vẽ kỹ thuật", schedule: "T4: 2-5,XP | T7: 2-5,XP [Tuần: 47-52]", teacher: "Nguyễn Công Hành", credits: "3" },
+    { classCode: "10327502521yy94", name: "Đồ họa kỹ thuật", schedule: "T4: 7-10,XP | T7: 7-10,XP [Tuần: 47-52]", teacher: "Nguyễn Công Hành", credits: "3" },
+    { classCode: "10332602521yy90", name: "Cơ học kỹ thuật", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Phạm Ngọc Quang", credits: "3" },
+    { classCode: "10328532521yy97", name: "Kết cấu và tính toán ô tô", schedule: "T3: 2-,XP | T5: 2-5,XP [Tuần: 47-52]", teacher: "Lưu Đức Lịch", credits: "3" },
+    { classCode: "10404512521yy93", name: "Kỹ thuật nhiệt", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Lê Thị Châu Duyên", credits: "2" },
+    { classCode: "10416302521yy94", name: "Đo lường & tự động hóa quá trình nhiệt", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 47-52]", teacher: "Mã Phước Hoàng", credits: "3" },
+    { classCode: "10417902521yy95", name: "Kỹ thuật tầng sôi và ứng dụng", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Trần Thanh Sơn", credits: "2" },
+    { classCode: "10514632521yy97", name: "Thực tập công nhân", schedule: " [Tuần: 48-50]", teacher: "Nguyễn Quang Chung", credits: "2" },
+    { classCode: "10537602521yy91", name: "ƯD SCADA trong công nghiệp", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Lê Tiến Dũng", credits: "2" },
+    { classCode: "10516532521yy90", name: "Trang bị điện", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Quốc Định", credits: "2" },
+    { classCode: "10530402521yy93", name: "Hệ thống điều khiển thông minh", schedule: "T4: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Quốc Định", credits: "2" },
+    { classCode: "10505432521yy96", name: "Cảm biến", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Hoàng Mai", credits: "2" },
+    { classCode: "10524602521yy91", name: "Máy điện", schedule: "T4: 7-10,XP | T5: 7-10,XP | T6: 7-10,XP [Tuần: 48-52]", teacher: "Võ Quang Sơn", credits: "4" },
+    { classCode: "10509312521yy93", name: "Kỹ thuật điện", schedule: "T4: 2-5,XP | T5: 2-5,XP | T6: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Văn Tấn", credits: "2" },
+    { classCode: "10516202521yy99", name: "Hệ thống thời gian thực", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 49-52]", teacher: "Ngô Đình Thanh", credits: "2" },
+    { classCode: "10537502521yy90", name: "IoT công nghiệp", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 49-52]", teacher: "Ngô Đình Thanh", credits: "2" },
+    { classCode: "10515432521yy98", name: "Vận hành Hệ thống điện", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Hạ Đình Trúc", credits: "2" },
+    { classCode: "10525402521yy90A", name: "TN máy điện (1TH)", schedule: "T7: 2-5,I102 [Tuần: 48-52]", teacher: "Trần Anh Tuấn", credits: "1" },
+    { classCode: "10525402521yy90B", name: "TN máy điện (1TH)", schedule: "T7: 7-10,I102 [Tuần: 48-52]", teacher: "Trần Anh Tuấn", credits: "1" },
+    { classCode: "10509312521yy92", name: "Kỹ thuật điện", schedule: "T4: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Hồ Sĩ Hùng", credits: "2" },
+    { classCode: "10534802521yy94", name: "Anh văn chuyên ngành", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Lê Hồng Lâm", credits: "2" },
+    { classCode: "10536602521yy97", name: "Vận hành nhà máy điện", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Lê Hồng Lâm", credits: "2" },
+    { classCode: "10537402521yy99", name: "Điều khiển tự động truyền động điện trong CN", schedule: "T2: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Khánh Quang", credits: "2" },
+    { classCode: "10620432521yy97", name: "Thực tập công nhân", schedule: "T2: 1-10,XP | T3: 1-10,XP | T4: 1-10,XP | T5: 1-10,XP | T6: 1-10,XP [Tuần: 47-49]", teacher: "Lê Hồng Nam", credits: "2" },
+    { classCode: "10630102521yy98", name: "Kỹ thuật số", schedule: "T2: 7-10,XP | T4: 7-10,XP | T6: 7-10,XP [Tuần: 48-52]", teacher: "Huỳnh Việt Thắng", credits: "4" },
+    { classCode: "10635402521yy93", name: "Ngôn ngữ mô tả phần cứng và FPGA", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 47-52]", teacher: "Huỳnh Việt Thắng", credits: "3" },
+    { classCode: "10633602521yy92", name: "Anten và truyền sóng", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 47-52]", teacher: "Võ Duy Phúc", credits: "3" },
+    { classCode: "10726732521yy98", name: "Quá trình & Thiết bị truyền chất", schedule: "T2: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thanh Bình", credits: "2" },
+    { classCode: "10751532521yy95", name: "Hóa lý 1", schedule: "T4: 7-10,XP [Tuần: 46-52]", teacher: "Tạ Ngọc Ly", credits: "2" },
+    { classCode: "10756302521yy91", name: "Tin sinh học", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 46-52]", teacher: "Tạ Ngọc Ly", credits: "3" },
+    { classCode: "10756402521yy91", name: "TN Tin sinh học", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 48-52]", teacher: "Tạ Ngọc Ly", credits: "1" },
+    { classCode: "10726522521yy97", name: "Quá trình thủy lực & cơ học", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Phạm Thị Đoan Trinh", credits: "2" },
+    { classCode: "10768702521yy97", name: "Vật liệu nano", schedule: "T2: 2-5,XP [Tuần: 46-52]", teacher: "Phạm Ngọc Tùng", credits: "2" },
+    { classCode: "10736302521yy90", name: "Thống kê ứng dụng", schedule: "T2: 7-10,XP [Tuần: 47-52]", teacher: "Nguyễn Thị Minh Xuân", credits: "3" },
+    { classCode: "10700432521yy95", name: "Cơ sở Thiết kế nhà máy", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Hoàng Trung Hiếu", credits: "2" },
+    { classCode: "10737102521yy91A", name: "TN hóa đại cương", schedule: "T3: 1-4,A124 [Tuần: 46-48]", teacher: "Phạm Thị Kim Thảo", credits: "0.5" },
+    { classCode: "10737102521yy91B", name: "TN hóa đại cương", schedule: "T3: 1-4,A124 [Tuần: 49-51]", teacher: "Phạm Thị kim Thảo", credits: "0.5" },
+    { classCode: "10734312521yy99", name: "Hóa đại cương", schedule: "T3: 3-5,XP | T5: 3-5,XP [Tuần: 46-50]", teacher: "Trịnh Lê Huyên", credits: "2" },
+    { classCode: "10736702521yy91", name: "Hóa đại cương", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Trịnh Lê Huyên", credits: "3" },
+    { classCode: "10949902521yy90", name: "Thi công đường ô tô", schedule: "T4: 7-10,XP | T6: 7-10,XP [Tuần: 47-52]", teacher: "Trần Thị Thu Thảo", credits: "3" },
+    { classCode: "10921702521yy98", name: "Kỹ năng nghề nghiệp", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Trần Đình Minh", credits: "2" },
+    { classCode: "10928402521yy99", name: "Vật liệu cách nhiệt, chịu nhiệt", schedule: "T2: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Tiến Dũng", credits: "2" },
+    { classCode: "11013822521yy92", name: "Cơ học công trình", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 47-52]", teacher: "Đỗ Minh Đức", credits: "3" },
+    { classCode: "11000532521yy91", name: "Lý thuyết đàn hồi", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Phan Đình Hào", credits: "2" },
+    { classCode: "11029502521yy93", name: "Học kỳ doanh nghiệp", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Khánh Linh", credits: "2" },
+    { classCode: "11030202521yy94", name: "Cơ học kết cấu", schedule: "T2: 2-5,XP | T4: 2-5,XP | T6: 2-5,XP [Tuần: 48-52]", teacher: "Lê Cao Tuấn", credits: "4" },
+    { classCode: "11032502521yy95", name: "Tiếng Anh nâng cao", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 47-52]", teacher: "Nguyễn Thị Tú Trinh", credits: "3" },
+    { classCode: "11112622521yy96", name: "Thủy văn", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thành Phát", credits: "2" },
+    { classCode: "11700112521yy90", name: "Môi trường", schedule: "T2: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Lan Phương", credits: "2" },
+    { classCode: "11708432521yy91", name: "Quản lý tổng hợp nguồn nước", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Dương Quang Chánh", credits: "2" },
+    { classCode: "11700112521yy91", name: "Môi trường", schedule: "T4: 2-5,XP [Tuần: 46-52]", teacher: "Hồ Hồng Quyên", credits: "2" },
+    { classCode: "11700112521yy92", name: "Môi trường", schedule: "T5: 2-5,XP [Tuần: 46-52]", teacher: "Trần Hà Quân", credits: "2" },
+    { classCode: "11831302521yy97", name: "Kinh tế học trong quản trị doanh nghiệp", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 47-52]", teacher: "Lê Thị Kim Oanh", credits: "3" },
+    { classCode: "11832102521yy98", name: "Nghiên cứu thị trường và khách hàng công nghiệp", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 47-52]", teacher: "Lê Thị Kim Oanh", credits: "3" },
+    { classCode: "11825502521yy90", name: "Kinh tế và quản lý doanh nghiệp", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Huỳnh Nhật Tố", credits: "2" },
+    { classCode: "11825502521yy91", name: "Kinh tế và quản lý doanh nghiệp", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Huỳnh Nhật Tố", credits: "2" },
+    { classCode: "11825502521yy92", name: "Kinh tế và quản lý doanh nghiệp", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Trần Thị Hoàng Giang", credits: "2" },
+    { classCode: "11832302521yy99", name: "Chuyển giao công nghệ", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Trần Thị Hoàng Giang", credits: "3" },
+    { classCode: "11835802521yy90", name: "Kỹ năng mềm trong quản lý dự án", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Trương Quỳnh Châu", credits: "2" },
+    { classCode: "11829102521yy99", name: "Hệ thống thông tin quản lý", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Hồ Dương Đông", credits: "2" },
+    { classCode: "11829202521yy90", name: "Quản lý bảo trì CN", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Hồ Dương Đông", credits: "2" },
+    { classCode: "11807532521yy90", name: "Quản lý Dự án", schedule: "T4: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Cúc", credits: "2" },
+    { classCode: "11807532521yy91", name: "Quản lý Dự án", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Cúc", credits: "2" },
+    { classCode: "11809332521yy93", name: "Quản trị học", schedule: "T2: 2-5,XP [Tuần: 46-50]", teacher: "Nguyễn Đặng Hoàng Thư", credits: "2" },
+    { classCode: "11830302521yy94", name: "Khởi tạo doanh nghiệp công nghệ", schedule: "T2: 7-10,XP [Tuần: 46-50]", teacher: "Nguyễn Đặng Hoàng Thư", credits: "2" },
+    { classCode: "11805432521yy97", name: "Giao tiếp kinh doanh", schedule: "T4: 1-4,XP | T6: 7-10,XP [Tuần: 46-49]", teacher: "Nguyễn Hồng Nguyên", credits: "2" },
+    { classCode: "11828902521yy98", name: "Lý thuyết lãnh đạo", schedule: "T4: 7-10,XP | T6: 7-10,XP [Tuần: 46-49]", teacher: "Nguyễn Hồng Nguyên", credits: "2" },
+    { classCode: "11829402521yy91", name: "Sản xuất tinh gọn", schedule: "T3: 2-5,XP [Tuần: 46-52]", teacher: "Lê Thị Huỳnh Anh", credits: "2" },
+    { classCode: "11829502521yy92", name: "Lập lịch trình sản xuất", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Lê Thị Huỳnh Anh", credits: "2" },
+    { classCode: "11830902521yy95", name: "Quản trị vận hành", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 46-49]", teacher: "Nguyễn Thị Phương Quyên", credits: "2" },
+    { classCode: "11831002521yy96", name: "Quản trị Logistics căn bản", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 46-49]", teacher: "Nguyễn Thị Phương Quyên", credits: "2" },
+    { classCode: "11809332521yy94", name: "Quản trị học", schedule: "T6: 2-5,XP [Tuần: 46-52]", teacher: "Trần Minh Trí", credits: "2" },
+    { classCode: "11809332521yy95", name: "Quản trị học", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Trần Minh Trí", credits: "2" },
+    { classCode: "11825502521yy93", name: "Kinh tế và quản lý doanh nghiệp", schedule: "T5: 2-5,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Thu Thủy", credits: "2" },
+    { classCode: "11825502521yy94", name: "Kinh tế và quản lý doanh nghiệp", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Thu Thủy", credits: "2" },
+    { classCode: "20901602521yy97", name: "Chủ nghĩa Xã hội khoa học", schedule: "T6: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Thu Huyền", credits: "2" },
+    { classCode: "20901602521yy98", name: "Chủ nghĩa Xã hội khoa học", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Thu Huyền", credits: "2" },
+    { classCode: "21700202521yy92", name: "Kinh tế chính trị Mác - Lênin", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Thu Huyền", credits: "2" },
+    { classCode: "20901012521yy90", name: "Tư tưởng Hồ Chí Minh", schedule: "T3: 1-4,XP | T5: 1-4,XP [Tuần: 49-52]", teacher: "Lê Sơn", credits: "2" },
+    { classCode: "20901012521yy91", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 49-52]", teacher: "Lê Sơn", credits: "2" },
+    { classCode: "20901502521yy91", name: "Triết học Mác - Lênin", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Phạm Huy Thành", credits: "3" },
+    { classCode: "20901502521yy92", name: "Triết học Mác - Lênin", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Phạm Huy Thành", credits: "3" },
+    { classCode: "20901602521yy95", name: "Chủ nghĩa Xã hội khoa học", schedule: "T2: 1-4,XP [Tuần: 46-52]", teacher: "Nguyễn Lê Thu Hiền", credits: "2" },
+    { classCode: "20901602521yy99", name: "Chủ nghĩa Xã hội khoa học", schedule: "T4: 7-10,XP [Tuần: 46-52]", teacher: "Nguyễn Lê Thu Hiền", credits: "2" },
+    { classCode: "20901012521yy92", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 1-4,XP | T4: 1-4,XP [Tuần: 49-52]", teacher: "Lê Thị Ngọc Hoa", credits: "2" },
+    { classCode: "20901012521yy93", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 7-10,XP | T6: 7-10,XP [Tuần: 49-52]", teacher: "Lê Thị Ngọc Hoa", credits: "2" },
+    { classCode: "20901012521yy98", name: "Tư tưởng Hồ Chí Minh", schedule: "T5: 1-4,XP | T7: 1-4,XP [Tuần: 49-52]", teacher: "Lê Thị Ngọc Hoa", credits: "2" },
+    { classCode: "20901702521yy93", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T2: 7-10,XP [Tuần: 46-52]", teacher: "Từ Ánh Nguyệt", credits: "2" },
+    { classCode: "20901702521yy96", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T2: 1-4,XP | T4: 1-4,XP [Tuần: 49-52]", teacher: "Từ Ánh Nguyệt", credits: "2" },
+    { classCode: "20901702521yy91", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T3: 1-4,XP [Tuần: 46-52]", teacher: "Đinh Văn Trọng", credits: "2" },
+    { classCode: "20901702521yy99", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T3: 1-4,XP | T5: 1-4,XP [Tuần: 49-52]", teacher: "Đinh Văn Trọng", credits: "2" },
+    { classCode: "20901602521yy93", name: "Chủ nghĩa Xã hội khoa học", schedule: "T5: 1-4,XP [Tuần: 46-52]", teacher: "Vương Phương Hoa", credits: "2" },
+    { classCode: "21700202521yy90", name: "Kinh tế chính trị Mác - Lênin", schedule: "T3: 1-4,XP [Tuần: 46-52]", teacher: "Vưong Phương Hoa", credits: "2" },
+    { classCode: "21700202521yy91", name: "Kinh tế chính trị Mác - Lênin", schedule: "T4: 7-10,XP [Tuần: 46-52]", teacher: "Văn Công Vũ", credits: "2" },
+    { classCode: "20901012521yy96", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 1-4,XP | T4: 1-4,XP [Tuần: 49-52]", teacher: "Trịnh Quang Dũng", credits: "2" },
+    { classCode: "20901012521yy97", name: "Tư tưởng Hồ Chí Minh", schedule: "T3: 1-4,XP | T6: 1-4,XP [Tuần: 49-52]", teacher: "Trịnh Quang Dũng", credits: "2" },
+    { classCode: "20901602521yy90", name: "Chủ nghĩa Xã hội khoa học", schedule: "T4: 2-5,XP [Tuần: 46-52]", teacher: "Hoàng Thị Kim Liên", credits: "2" },
+    { classCode: "20901602521yy91", name: "Chủ nghĩa Xã hội khoa học", schedule: "T4: 7-10,XP [Tuần: 46-52]", teacher: "Hoàng Thị Kim Liên", credits: "2" },
+    { classCode: "20901012521yy94", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 1-4,XP | T4: 1-4,XP [Tuần: 49-52]", teacher: "Phạm Đức Thọ", credits: "2" },
+    { classCode: "20901012521yy95", name: "Tư tưởng Hồ Chí Minh", schedule: "T3: 7-10,XP | T7: 7-10,XP [Tuần: 49-52]", teacher: "Phạm Đức Thọ", credits: "2" },
+    { classCode: "20901012521yy99", name: "Tư tưởng Hồ Chí Minh", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 49-52]", teacher: "Phạm Đức Thọ", credits: "2" },
+    { classCode: "20901602521yy92", name: "Chủ nghĩa Xã hội khoa học", schedule: "T5: 7-10,XP [Tuần: 46-52]", teacher: "Trương Thị Thu Hiền", credits: "2" },
+    { classCode: "20901702521yy90", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T4: 1-4,XP [Tuần: 46-52]", teacher: "Ngô Văn Hà", credits: "2" },
+    { classCode: "20901702521yy98", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T4: 1-4,XP | T6: 1-4,XP [Tuần: 49-52]", teacher: "Ngô Văn Hà", credits: "2" },
+    { classCode: "20901702521yy94", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T6: 1-4,XP [Tuần: 46-52]", teacher: "Nguyễn Văn Hoàn", credits: "2" },
+    { classCode: "20901702521yy95", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T6: 1-4,XP | T7: 1-4,XP [Tuần: 49-52]", teacher: "Nguyễn Văn Hoàn", credits: "2" },
+    { classCode: "20901702521yy92", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T3: 7-10,XP [Tuần: 46-52]", teacher: "Đỗ Thị Hằng Nga", credits: "2" },
+    { classCode: "20901702521yy97", name: "Lịch sử Đảng Cộng sản Việt Nam", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 49-52]", teacher: "Đỗ Thị Hằng Nga", credits: "2" },
+    { classCode: "20901502521yy90", name: "Triết học Mác - Lênin", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Lưu Thị Mai Thanh", credits: "3" },
+    { classCode: "20901602521yy94", name: "Chủ nghĩa Xã hội khoa học", schedule: "T4: 1-4,XP [Tuần: 46-52]", teacher: "Trần Thị Thùy Trang", credits: "2" },
+    { classCode: "21700202521yy94", name: "Kinh tế chính trị Mác - Lênin", schedule: "T6: 1-4,XP [Tuần: 46-52]", teacher: "Trần Thị Thùy Trang", credits: "2" },
+    { classCode: "20901602521yy96", name: "Chủ nghĩa Xã hội khoa học", schedule: "T2: 1-4,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Kiều Trinh", credits: "2" },
+    { classCode: "21700202521yy93", name: "Kinh tế chính trị Mác - Lênin", schedule: "T5: 1-4,XP [Tuần: 46-52]", teacher: "Nguyễn Thị Kiều Trinh", credits: "2" },
+    { classCode: "21000102521yy90", name: "Pháp luật đại cương", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 46-49]", teacher: "Nguyễn Hoàng Duy Linh", credits: "2" },
+    { classCode: "21000102521yy91", name: "Pháp luật đại cương", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 46-49]", teacher: "Lê Hồng Phước", credits: "2" },
+    { classCode: "20700322521yy91", name: "Pháp luật trong kinh doanh", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 46-49]", teacher: "Trần Thị Sáu", credits: "2" },
+    { classCode: "21000102521yy92", name: "Pháp luật đại cương", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 49-52]", teacher: "Lê Thị Hoàng Minh", credits: "2" },
+    { classCode: "21000102521yy93", name: "Pháp luật đại cương", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 49-52]", teacher: "Dương Việt Anh", credits: "2" },
+    { classCode: "21000102521yy94", name: "Pháp luật đại cương", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 46-49]", teacher: "Lê Thị Bích Thủy", credits: "2" },
+    { classCode: "30500112521yy92", name: "Vật lý 1", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Trần Thị Hồng", credits: "3" },
+    { classCode: "30500112521yy93", name: "Vật lý 1", schedule: "T3: 2-5,XP | T5: 2-5,XP [Tuần: 47-52]", teacher: "Nguyễn Bá Vũ Chính", credits: "3" },
+    { classCode: "30506412521yy93", name: "Vật lý 2", schedule: "T2: 7-10,XP | T4: 6-9,XP [Tuần: 47-52]", teacher: "Dụng Văn Lữ", credits: "3" },
+    { classCode: "30500112521yy94", name: "Vật lý 1", schedule: "T5: 7-10,XP | T6: 7-10,XP [Tuần: 47-52]", teacher: "Lê Thị Phương Thảo", credits: "3" },
+    { classCode: "30506702521yy91A", name: "TN Vật lý (Điện-Từ-Quang)", schedule: "T6: 2-5,D212 [Tuần: 48-52]", teacher: "Trần Thị Hương Xuân", credits: "1" },
+    { classCode: "30506702521yy91B", name: "TN Vật lý (Điện-Từ-Quang)", schedule: "T6: 7-10,D212 [Tuần: 48-52]", teacher: "Trần Thị Hương Xuân", credits: "1" },
+    { classCode: "30506412521yy94", name: "Vật lý 2", schedule: "T3: 1-4,XP | T5: 1-4,XP [Tuần: 47-52]", teacher: "Đinh Thanh Khẩn", credits: "3" },
+    { classCode: "30506412521yy95", name: "Vật lý 2", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Đinh Thanh Khẩn", credits: "3" },
+    { classCode: "30500112521yy90", name: "Vật lý 1", schedule: "T2: 2-5,XP | T4: 2-5,XP [Tuần: 47-52]", teacher: "Mai Thị Kiều Liên", credits: "3" },
+    { classCode: "30500112521yy91", name: "Vật lý 1", schedule: "T2: 7-10,XP | T4: 7-10,XP [Tuần: 47-52]", teacher: "Mai Thị Kiều Liên", credits: "3" },
+    { classCode: "30506702521yy91C", name: "TN Vật lý (Điện-Từ-Quang)", schedule: "T7: 2-5,D212 [Tuần: 48-52]", teacher: "Phan Liễn", credits: "1" },
+    { classCode: "30506602521yy90A", name: "TN Vật lý (Cơ-Nhiệt)", schedule: "T7: 7-10,D211 [Tuần: 48-52]", teacher: "Lê Vũ Trường Sơn", credits: "1" },
+    { classCode: "30506602521yy90B", name: "TN Vật lý (Cơ-Nhiệt)", schedule: "T5: 2-5,D211 [Tuần: 48-52]", teacher: "Lê Vũ Trường Sơn", credits: "1" },
+    { classCode: "30506602521yy90C", name: "TN Vật lý (Cơ-Nhiệt)", schedule: "T5: 7-10,D211 [Tuần: 48-52]", teacher: "Lê Vũ Trường Sơn", credits: "1" },
+    { classCode: "31900412521yy91", name: "Xác suất thống kê", schedule: "T2: 7-10,XP | T6: 7-10,XP [Tuần: 47-52]", teacher: "Tôn Thất Tú", credits: "3" },
+    { classCode: "31900412521yy94", name: "Xác suất thống kê", schedule: "T3: 7-10,XP | T5: 7-10,XP [Tuần: 47-52]", teacher: "Phan Quang Như Anh", credits: "3" },
+    { classCode: "31900412521yy93", name: "Xác suất thống kê", schedule: "T4: 1-4,XP | T6: 1-4,XP [Tuần: 47-52]", teacher: "Nguyễn Thị Hải Yến", credits: "3" },
+    { classCode: "31901112521yy93", name: "Giải tích 1", schedule: "T4: 7-10,XP | T6: 7-10,XP | T7: 1-4,XP [Tuần: 48-52]", teacher: "Nguyễn Thị Thuỳ Dương", credits: "4" },
+    { classCode: "31902602521yy91", name: "Đại số tuyến tính", schedule: "T5: 7-10,XP | T6: 7-10,XP | T7: 7-10,XP [Tuần: 49-52]", teacher: "Nguyễn Thị Sinh", credits: "3" },
+    { classCode: "31901212521yy90", name: "Giải tích 2", schedule: "T3: 1-4,XP | T4: 1-4,XP | T5: 1-4,XP [Tuần: 48-52]", teacher: "Hoàng Nhật Quy", credits: "4" },
+    { classCode: "31901212521yy91", name: "Giải tích 2", schedule: "T5: 1-4,XP | T6: 1-4,XP | T7: 1-4,XP [Tuần: 48-52]", teacher: "Chử Văn Tiệp", credits: "4" },
+    { classCode: "31902602521yy92", name: "Đại số tuyến tính", schedule: "T5: 1-4,XP | T6: 1-4,XP | T7: 1-4,XP [Tuần: 49-52]", teacher: "Trần Nam Sinh", credits: "3" },
+    { classCode: "31902602521yy90", name: "Đại số tuyến tính", schedule: "T3: 1-4,XP | T4: 1-4,XP | T5: 1-4,XP [Tuần: 49-52]", teacher: "Nguyễn Đại Dương", credits: "3" },
+    { classCode: "31900412521yy92", name: "Xác suất thống kê", schedule: "T3: 1-4,XP | T5: 1-4,XP [Tuần: 47-52]", teacher: "Phan Trần Đức Minh", credits: "3" },
+    { classCode: "31900412521yy90", name: "Xác suất thống kê", schedule: "T2: 1-4,XP | T4: 1-4,XP [Tuần: 47-52]", teacher: "Lê Văn Dũng", credits: "3" },
+    { classCode: "31901112521yy92", name: "Giải tích 1", schedule: "T2: 1-4,XP | T4: 1-4,XP | T6: 1-4,XP [Tuần: 48-52]", teacher: "Lương Quốc Tuyển", credits: "4" },
+    { classCode: "41301202521yy92", name: "Anh văn B1.1", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Lê Thị Nhi", credits: "3" },
+    { classCode: "41301202521yy93", name: "Anh văn B1.1", schedule: "T4: 7-10,XP | T6: 7-10,XP [Tuần: 47-52]", teacher: "Lê Thị Nhi", credits: "3" },
+    { classCode: "41303112521yy94", name: "Anh văn A2.2", schedule: "T2: 2-5,XP | T4: 2-5,XP | T6: 2-5,XP [Tuần: 48-52]", teacher: "Lê Thị Hải Yến", credits: "4" },
+    { classCode: "41301202521yy90", name: "Anh văn B1.1", schedule: "T2: 1-4,XP | T4: 1-4,XP | T6: 1-4,XP [Tuần: 49-52]", teacher: "Thiều Hoàng Mỹ", credits: "3" },
+    { classCode: "41301202521yy91", name: "Anh văn B1.1", schedule: "T2: 7-10,XP | T4: 7-10,XP | T6: 7-10,XP [Tuần: 49-52]", teacher: "Thiều Hoàng Mỹ", credits: "3" },
+    { classCode: "41303112521yy93", name: "Anh văn A2.2", schedule: "T3: 7-10,XP | T4: 7-10,XP | T6: 7-10,XP [Tuần: 48-52]", teacher: "Phạm Thị Thu Hương", credits: "4" },
+    { classCode: "41303112521yy95", name: "Anh văn A2.2", schedule: "T2: 7-10,XP | T4: 7-10,XP | T6: 7-10,XP [Tuần: 48-52]", teacher: "Trần Thị Tuý Phượng", credits: "4" },
+    { classCode: "41305012521yy92", name: "Anh văn A2.1", schedule: "T4: 2-5,XP | T6: 2-5,XP [Tuần: 47-52]", teacher: "Trần Thị Tuý Phượng", credits: "3" }
+];
+
+    let selectedCourses = []; // Mảng chứa các lớp sinh viên bấm chọn
+
+    // TỰ ĐỘNG CHẠY NGAY KHI VÀO WEB TRÌNH DUYỆT
+    window.onload = function() {
+        renderDataToTable(DATABASE_HOC_PHAN);
+        document.getElementById('search-input').addEventListener('input', runFilterEngine);
+    };
+
+    // ĐỔ DỮ LIỆU TỪ MẢNG CỐ ĐỊNH VÀO BẢNG HTML
+    function renderDataToTable(data) {
+        const tbody = document.getElementById('data-rows');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-code', item.classCode);
+            tr.setAttribute('data-name', item.name);
+
+            // Kiểm tra trạng thái hàng để áp dụng logic mờ/vàng nền
+            const isSelected = selectedCourses.some(x => x.classCode === item.classCode);
+            const isNameLocked = selectedCourses.some(x => x.name === item.name);
+
+            if (isSelected) {
+                tr.classList.add('selected-row');
+            } else if (isNameLocked) {
+                tr.classList.add('muted-row');
+            }
+
+            tr.innerHTML = `
+                <td><b>${item.classCode}</b></td>
+                <td>${item.name}</td>
+                <td><small>${item.schedule}</small></td>
+                <td>${item.teacher}</td>
+                <td>${item.credits}</td>
+                <td align="center">
+                    ${isSelected ? 
+                        `<button style="color: #ff0000; font-weight: bold; font-family: 'Times New Roman';" onclick="handleSelectToggle('${item.classCode}')">HUY CHON</button>` : 
+                        `<button style="color: #0000ff; font-weight: bold; font-family: 'Times New Roman';" onclick="handleSelectToggle('${item.classCode}')">CHON</button>`
+                    }
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // LOGIC CLICK CHỌN / HỦY CHỌN & KHÓA MÔN TRÙNG TÊN MÔN HỌC
+    function handleSelectToggle(code) {
+        const index = selectedCourses.findIndex(x => x.classCode === code);
+        if (index > -1) {
+            selectedCourses.splice(index, 1); // Khôi phục môn nếu bấm Hủy chọn
+        } else {
+            const matchObj = DATABASE_HOC_PHAN.find(x => x.classCode === code);
+            selectedCourses.push(matchObj); // Khóa các môn trùng tên nếu bấm Chọn
+        }
+        renderDataToTable(DATABASE_HOC_PHAN);
+        runFilterEngine(); // Giữ nguyên bộ lọc tìm kiếm hiện tại
+    }
+
+    // BỘ SÀNG LỌC TÌM KIẾM ĐA NĂNG KHÔNG PHÂN BIỆT DẤU CHẤM (.)
+    function runFilterEngine() {
+        const searchInputText = document.getElementById('search-input').value.trim().toLowerCase();
+        const cleanSearchText = searchInputText.replace(/\./g, ''); // Xóa dấu chấm chuỗi nhập vào
+
+        const rows = document.querySelectorAll('#data-rows tr');
+        rows.forEach(row => {
+            const rowCode = row.getAttribute('data-code').toLowerCase().replace(/\./g, ''); // Xóa dấu chấm mã lớp hệ thống
+            const rowName = row.getAttribute('data-name').toLowerCase();
+
+            if (rowName.includes(searchInputText) || rowCode.includes(cleanSearchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+   
+    function notifyUpdating() {
+        alert("error");
+    }
+</script>
+
+</body>
+</html>
